@@ -43,3 +43,17 @@ div{
 .azul{
     background-color:var(--blue);
 }
+@media (min-width:0px) and (max-width:361px){
+ .side-bar{
+    display:none!important;
+ }
+ .col-md-1{
+    width: 7.49rem;
+}
+.col-xs-1{
+    width: 11.25rem;
+}
+
+}
+
+
