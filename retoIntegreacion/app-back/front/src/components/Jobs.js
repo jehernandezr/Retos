@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import Job from "./Job";
 
-export const Jobs = () => {
+const  Jobs = () => {
 
   const [state, setState] = useState({offers:[]});
 
@@ -21,3 +21,5 @@ export const Jobs = () => {
       </div>
     );
 }
+
+export default Jobs;

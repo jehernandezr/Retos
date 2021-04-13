@@ -10,7 +10,7 @@ const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology:
 const getDatabase = (callback) => {
     client.connect(function (err) {
         assert.equal(null, err);
-        console.log("Connected successfully to server");
+        console.log("Connected successfully to MOMGO ATLAS");
 
         const db = client.db(dbName);
 
