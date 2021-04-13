@@ -1,7 +1,6 @@
 const WebSocket = require("ws");
 const chatController = require("./controllers/chatController");
 const clients = [];
-let messages = chatController.wsGetMessages;
 
 const wsConnection = (server) => {
   const wss = new WebSocket.Server({ server });
@@ -11,31 +10,34 @@ const wsConnection = (server) => {
     sendMessages();
 
     ws.on("message", (message) => {
-        //if (message.split(";")[0] == "client") chatController.wsCreateMessage({ message: message.split(";")[1], author: message.split(";")[2] });
-        if(message==="")
-        { sendMessages();}
-        else{
-        chatController.wsCreateMessage(JSON.parse(message));
-        this.messages =chatController.wsGetMessages;
-        sendMessages();
-        //console.log("server", ws.readyState);
+      if (message === "") { sendMessages(); }
+      else {
+        message = JSON.parse(message);
+        let x = chatController.wsCreateMessage(message);
+        if (x["details"]) {
+          msg = "ERROR " + x.details[0].message;
+          message = JSON.stringify(msg);
+          ws.send(message);
         }
+        sendMessages();
+      }
+
     });
-    
-    
   });
+};
 
-  const sendMessages = () => {
-
+const sendMessages = () => {
   clients.forEach((client) => {
-    mess=JSON.stringify(messages);
-    client.send(mess);
-    
-  }
-  );
-
-  };
-
+    chatController.wsGetMessages().then((result) => {
+      var array = [];
+      result.forEach((mensaje) => {
+        array.push(mensaje.dataValues);
+      });
+      messages = JSON.stringify(array);
+      client.send(messages);
+    });
+  });
 };
 
 exports.wsConnection = wsConnection;
+exports.sendMessages = sendMessages;
