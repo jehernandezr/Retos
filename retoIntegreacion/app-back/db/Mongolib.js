@@ -10,7 +10,7 @@ const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology:
 const getDatabase = (callback) => {
     client.connect(function (err) {
         assert.equal(null, err);
-        console.log("Connected successfully to MOMGO ATLAS");
+        console.log("Connected successfully to server");
 
         const db = client.db(dbName);
 
@@ -26,5 +26,12 @@ const findDocuments = function (db, callback) {
     });
 }
 
+const saveDocuments= function (db, data, callback){
+    const collection = db.collection('offers');
+    collection.insertOne(data).then( dat => {callback(dat.ops[0])}).catch(err=> console.log(err))
+    
+}
+
 exports.getDatabase = getDatabase;
 exports.findDocuments = findDocuments;
+exports.saveDocuments=saveDocuments;
