@@ -28,6 +28,7 @@ exports.updateUser = async (req, res, next) => {
   };
 
 exports.createUser = async (req, res, next) => {
+
     const doc = await User.create(req.body);
 
     res.status(201).json({
@@ -55,7 +56,7 @@ exports.getUser = async (req, res, next) => {
 
 exports.getAllUsers = async (req, res, next) => {
 
-    const docs = await User.findAll();
+    const docs = await User.find();
     if (!docs) return res.status(404)
     res.status(200).json({
       status: "success",

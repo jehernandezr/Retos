@@ -36,25 +36,30 @@ const signup = async (req, res, next) => {
   let us={
     username: req.body.username,
     password: req.body.password,
-    passwordConfirm: req.body.passwordConfirm};
-  let err = new User(us).validateSync();
-  if(err)
-    { 
-      let newErr= { password : err.errors["password"]?err.errors["password"].message: "",
-      username: err.errors["username"]?err.errors["username"].message : "" ,
-      passwordConfirm: err.errors["passwordConfirm"]? err.errors["passwordConfirm"].message: "",
-
-    } 
-   
-      err=new Error()
-      err.message=`Must follow the next requirements to signUp as an user: ${JSON.stringify(newErr)}`
-      err.status=412
-      return next(err);
+    passwordConfirm: req.body.passwordConfirm,
+    role:req.body.role };
+    try{
+      new User(us).validateSync();
+      
+      const newUser = await User.create(us);
+      createSendToken(newUser, 201, res);
     }
   
-  const newUser = await User.create(us);
-
-  createSendToken(newUser, 201, res);
+    catch(err){
+      if(err.errors){
+        let newErr= { password : err.errors["password"]?err.errors["password"].message: "",
+        passwordConfirm: err.errors["passwordConfirm"]? err.errors["passwordConfirm"].message: "",}
+        err=new Error()
+        err.message=`Must follow the next requirements to signUp as an user: ${JSON.stringify(newErr)}`
+      }
+      if (err.code==11000)
+      {
+        err=new Error()
+        err.message="username already exists."
+      }
+        err.status=412
+        return next(err);
+    }
 };
 
 const login =async (req, res, next) => {

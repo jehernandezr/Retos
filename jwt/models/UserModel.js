@@ -6,12 +6,13 @@ const bcrypt = require('bcrypt');
 const usersSchema = new mongoose.Schema({
     username: {
         type: String,
-        required: [true, 'An user must have a username']
+        unique: true,
+        required: [true, 'An user must have a username'],
+        dropDups: true,
     },
     role: {
         type: String,
-        enum: ['user', 'admin','company'],
-        default: 'user'
+        enum: ['user', 'admin', 'company'],
     },
 
     password: {
@@ -36,6 +37,12 @@ const usersSchema = new mongoose.Schema({
 });
 
 usersSchema.pre('save', async function (next) {
+    if(this.get('role')==='company'){
+        this.role=this.get('role')
+    }
+    else {
+        this.role="user"
+    }
     if (!this.isModified('password')) return next();
     else {
         this.password = await bcrypt.hash(this.password, 12);
@@ -43,6 +50,8 @@ usersSchema.pre('save', async function (next) {
         next();
     }
 })
+
+
 
 usersSchema.methods.correctPassword = async function (candidatePassword, userPassword) {
     return await bcrypt.compare(candidatePassword, userPassword);
