@@ -3,15 +3,36 @@
 /**
  * Module dependencies.
  */
+ const mongoose = require("mongoose");
+ const dotenv = require("dotenv");
+ dotenv.config();
+
+
 
 var app = require('../app');
-var debug = require('debug')('jwt:server');
+var debug = require('debug')('app-back:server');
 var http = require('http');
 
 /**
  * Get port from environment and store in Express.
  */
+ const DB = process.env.DATABASE;
+ const conect = async () =>  {
+  await mongoose.connect(DB, {
+   useNewUrlParser: true,
+   useCreateIndex: true,
+   useFindAndModify: false,
+   useUnifiedTopology: true,
+ }).then(() => {
+   console.log("DB conection succesful");
 
+ }).catch(err=> {
+   conect();
+   console.log(err);
+
+ });
+}
+conect();
 var port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
 
@@ -88,3 +109,4 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+
