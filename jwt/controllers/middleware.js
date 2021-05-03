@@ -1,47 +1,139 @@
-let jwt = require( 'jsonwebtoken' );
+const jwt = require( 'jsonwebtoken' );
+const User = require("../models/UserModel");
+const { promisify } = require("util");
+
+const signToken = (id) => {
+  return jwt.sign(
+    {
+      id,
+    },
+    process.env.SECRET
+  );
+};
+
+const createSendToken = (user, statusCode, res) => {
+  const token = signToken(user._id);
+  const cookieOptions = {
+    httpOnly: true,
+  };
+ 
+  res.cookie("jwt", token, cookieOptions);
+
+  user.password = undefined;
+
+  res.status(statusCode).json({
+    status: "success",
+    token,
+    data: {
+      user,
+    },
+  });
+};
 
 
-// Función encargada de realizar la validación del token y que es directamente consumida por server.js
-let checkToken = ( req, res, next ) => {
+const signup = async (req, res, next) => {
   
-  // Extrae el token de la solicitud enviado a través de cualquiera de los dos headers especificados
-  // Los headers son automáticamente convertidos a lowercase
-  let token = req.headers[ 'x-access-token' ] || req.headers[ 'authorization' ];
-  
-  // Si existe algún valor para el token, se analiza
-  // de lo contrario, un mensaje de error es retornado
-  if( token ) {
+  let us={
+    username: req.body.username,
+    password: req.body.password,
+    passwordConfirm: req.body.passwordConfirm};
+  let err = new User(us).validateSync();
+  if(err)
+    { 
+      let newErr= { password : err.errors["password"]?err.errors["password"].message: "",
+      username: err.errors["username"]?err.errors["username"].message : "" ,
+      passwordConfirm: err.errors["passwordConfirm"]? err.errors["passwordConfirm"].message: "",
 
-    // Si el token incluye el prefijo 'Bearer ', este debe ser removido
-    if ( token.startsWith( 'Bearer ' ) ) {
-        token = token.slice(7, token.length );
-        // Llama la función verify del paquete jsonwebtoken que se encarga de realizar la validación del token con el secret proporcionado
-        jwt.verify( token, process.env.SECRET, ( err, decoded ) => {
-      
-        // Si no pasa la validación, un mensaje de error es retornado
-        // de lo contrario, permite a la solicitud continuar
-        if( err ) {
-          return res.json( {
-            success: false,
-            message: 'Token is not valid'
-          } );
-        } else {
-          req.decoded = decoded;
-          next();
-        }
-      } );
+    } 
+   
+      err=new Error()
+      err.message=`Must follow the next requirements to signUp as an user: ${JSON.stringify(newErr)}`
+      err.status=412
+      return next(err);
     }
-  } else {
-    
-    return res.json( {
-      success: false,
-      message: 'Auth token is not supplied'
-    } );
+  
+  const newUser = await User.create(us);
 
+  createSendToken(newUser, 201, res);
+};
+
+const login =async (req, res, next) => {
+  const { username, password } = req.body;
+
+  if (!username || !password){
+    err=new Error()
+    err.message="Must provide username and password!"
+    err.status=400
+    return next(err);
   }
 
+  const user = await User.findOne({ username }).select("+password");
+
+  if (!user || !(await user.correctPassword(password, user.password))){
+
+    err=new Error()
+    err.message="Incorrect username or password"
+    err.status=401
+    return next(err);
+  }
+
+  createSendToken(user, 200, res);
+};
+
+const logout = (req, res) => {
+  res.cookie("jwt", "loggedout", {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+  });
+  res.status(200).json({ status: "success" });
+};
+
+
+const restrictTo = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      err=new Error()
+      err.message="You do not have permission to perform this action."
+      err.status=403
+    return next(err);
+    }
+    next();
+  };
+};
+
+const protect =async (req, res, next) => {
+  let token;
+  let err;
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  )
+    token = req.headers.authorization.split(" ")[1];
+  else if (req.cookies.jwt) token = req.cookies.jwt;
+  if (!token){
+    err=new Error();
+    err.message="You are not logged in! Please log in to get access"
+    err.status=401
+    return next(err);
+  }
+  const decoded = await promisify(jwt.verify)(token, process.env.SECRET);
+  const currentUser = await User.findById(decoded.id);
+  if (!currentUser){
+    err= new Error()
+    err.message="The user belonging to this token does not longer exist."
+    err.status=400
+    return next(err);
+  }
+
+  req.user = currentUser;
+  res.locals.user = currentUser;
+  next();
 };
 
 module.exports = {
-  checkToken: checkToken
+  signup:signup,
+  login:login,
+  logout:logout,
+  restrictTo:restrictTo,
+  protect:protect
 }

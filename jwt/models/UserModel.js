@@ -4,18 +4,10 @@ const validator = require('validator');
 const bcrypt = require('bcrypt');
 
 const usersSchema = new mongoose.Schema({
-    name: {
+    username: {
         type: String,
-        required: [true, 'An user must have a name']
+        required: [true, 'An user must have a username']
     },
-    email: {
-        type: String,
-        unique: true,
-        lowercase: true,
-        required: [true, 'An user must have a email'],
-        validate: [validator.isEmail, 'Must provide a valid email']
-    },
-
     role: {
         type: String,
         enum: ['user', 'admin','company'],
